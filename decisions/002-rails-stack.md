@@ -1,7 +1,8 @@
 # Decision: Rails + Hotwire + SQLite + ActionCable
 
 **Date:** 2026-05-09  
-**Status:** Decided
+**Status:** Decided  
+**Weight:** Genesis
 
 ## Context
 Needed a backend stack for the Raspberry Pi 5. Original plan was FastAPI + SQLite. User is fluent in Rails and JavaScript.

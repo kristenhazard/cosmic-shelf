@@ -44,6 +44,8 @@ Decisions are numbered sequentially. Lower numbers are foundational; higher numb
 **Date:** YYYY-MM-DD
 **Status:** Draft | Decided | Superseded
 **Type:** Architecture | Practice | Tool
+**Weight:** Genesis | Core | Pivot | Practice
+**Supersedes:** (decision number, if applicable)
 
 ## Context
 What problem or question prompted this decision?
@@ -58,6 +60,17 @@ What we decided and why.
 ## Consequences
 What becomes easier, harder, or constrained as a result.
 ```
+
+## Decision weights
+
+| Weight | Meaning |
+|---|---|
+| **Genesis** | Foundational — everything else is built on this. Stack choice, core architecture, the process itself. |
+| **Core** | Load-bearing — changing this would ripple widely. Key technology or design choices. |
+| **Pivot** | A change of direction — supersedes or significantly redirects prior thinking. |
+| **Practice** | How we work — process, testing, review conventions. Important but not architectural. |
+
+When building an INDEX.md at scale, Genesis and Pivot records are the ones to read first.
 
 ## What earns a record
 

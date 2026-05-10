@@ -2,6 +2,7 @@
 
 **Date:** 2026-05-10  
 **Status:** Decided  
+**Weight:** Pivot  
 **Type:** Architecture
 
 ## Context

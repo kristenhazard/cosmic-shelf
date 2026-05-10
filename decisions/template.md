@@ -2,7 +2,9 @@
 
 **Date:** YYYY-MM-DD  
 **Status:** Draft | Decided | Superseded  
-**Type:** Architecture | Practice | Tool
+**Type:** Architecture | Practice | Tool  
+**Weight:** Genesis | Core | Pivot | Practice  
+**Supersedes:** (decision number, if applicable)
 
 ## Context
 What problem or question prompted this decision?

@@ -1,7 +1,8 @@
 # Decision: Start with plain Canvas API, consider PixiJS later
 
 **Date:** 2026-05-09  
-**Status:** Decided
+**Status:** Decided  
+**Weight:** Practice
 
 ## Context
 The renderer needs to draw book covers to screen. PixiJS v8 (WebGL) was in the original plan. Evaluating whether it's necessary from the start.

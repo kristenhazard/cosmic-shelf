@@ -1,7 +1,8 @@
 # Decision: Four-layer architecture
 
 **Date:** 2026-05-09  
-**Status:** Decided
+**Status:** Decided  
+**Weight:** Genesis
 
 ## Context
 Needed an architecture that supports multiple projection technologies and multiple shelf designs without coupling them together.

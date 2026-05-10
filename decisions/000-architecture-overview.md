@@ -1,7 +1,8 @@
 # Decision: Four-layer architecture diagram
 
 **Date:** 2026-05-09  
-**Status:** Decided
+**Status:** Decided  
+**Weight:** Genesis
 
 ## Overview
 

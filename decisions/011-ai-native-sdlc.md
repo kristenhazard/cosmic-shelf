@@ -2,6 +2,7 @@
 
 **Date:** 2026-05-09  
 **Status:** Decided  
+**Weight:** Genesis  
 **Type:** Practice
 
 ## Context

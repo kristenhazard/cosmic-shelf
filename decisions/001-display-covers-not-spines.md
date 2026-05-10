@@ -1,7 +1,8 @@
 # Decision: Display book covers, not spines
 
 **Date:** 2026-05-09  
-**Status:** Decided
+**Status:** Decided  
+**Weight:** Core
 
 ## Context
 The original vision was glowing book spines. We questioned whether cover art was easier to procure and more visually interesting.

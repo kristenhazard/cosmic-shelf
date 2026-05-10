@@ -1,7 +1,8 @@
 # Decision: Projection technology is not locked in
 
 **Date:** 2026-05-09  
-**Status:** Decided
+**Status:** Decided  
+**Weight:** Genesis
 
 ## Context
 Original plan assumed Pepper's Ghost (hidden monitor + 45° acrylic panel). User wants to experiment with different projection technologies as the project evolves.
