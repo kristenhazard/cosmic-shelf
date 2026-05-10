@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Cosmic Shelf Designer</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, sans-serif;
+      background: #1a1a1a;
+      color: #eee;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    #sidebar {
+      width: 280px;
+      min-width: 280px;
+      background: #242424;
+      border-right: 1px solid #333;
+      display: flex;
+      flex-direction: column;
+      padding: 16px;
+      gap: 16px;
+      overflow-y: auto;
+    }
+
+    h1 { font-size: 16px; color: #aaa; font-weight: 500; }
+    h2 { font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 1px; }
+
+    #canvas-wrap {
+      flex: 1;
+      overflow: auto;
+      background: #111;
+      position: relative;
+    }
+
+    canvas {
+      display: block;
+      cursor: crosshair;
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    label { font-size: 12px; color: #888; }
+
+    input[type="number"], input[type="text"] {
+      background: #333;
+      border: 1px solid #444;
+      color: #eee;
+      padding: 6px 8px;
+      border-radius: 4px;
+      font-size: 13px;
+      width: 100%;
+    }
+
+    input:focus { outline: none; border-color: #666; }
+
+    .row { display: flex; gap: 8px; }
+    .row .field-group { flex: 1; }
+
+    button {
+      padding: 8px 12px;
+      border-radius: 4px;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+      width: 100%;
+    }
+
+    .btn-primary { background: #4a9eff; color: #000; font-weight: 600; }
+    .btn-danger  { background: #ff4a4a; color: #fff; }
+    .btn-export  { background: #333; color: #eee; border: 1px solid #555; }
+
+    .btn-primary:hover { background: #6ab3ff; }
+    .btn-danger:hover  { background: #ff6666; }
+    .btn-export:hover  { background: #444; }
+
+    #selected-panel { display: none; flex-direction: column; gap: 10px; }
+    #selected-panel.active { display: flex; }
+
+    #compartment-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .comp-item {
+      padding: 6px 8px;
+      background: #333;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+
+    .comp-item:hover { background: #3a3a3a; }
+    .comp-item.selected { border-color: #4a9eff; }
+
+    #export-output {
+      background: #111;
+      border: 1px solid #333;
+      border-radius: 4px;
+      padding: 10px;
+      font-size: 11px;
+      font-family: monospace;
+      color: #8f8;
+      white-space: pre;
+      overflow-x: auto;
+      max-height: 200px;
+      display: none;
+    }
+
+    #export-output.active { display: block; }
+
+    .hint { font-size: 11px; color: #555; line-height: 1.5; }
+
+    hr { border: none; border-top: 1px solid #333; }
+
+    #shelf-size { display: flex; gap: 8px; }
+    #shelf-size .field-group { flex: 1; }
+  </style>
+</head>
+<body>
+
+<div id="sidebar">
+  <h1>Cosmic Shelf Designer</h1>
+
+  <div class="field-group">
+    <h2>Canvas Size (inches)</h2>
+    <div id="shelf-size">
+      <div class="field-group">
+        <label>Width</label>
+        <input type="number" id="canvas-w" value="60" min="10" max="200">
+      </div>
+      <div class="field-group">
+        <label>Height</label>
+        <input type="number" id="canvas-h" value="50" min="10" max="200">
+      </div>
+    </div>
+    <button class="btn-primary" onclick="applyCanvasSize()">Apply</button>
+  </div>
+
+  <hr>
+
+  <div class="hint">
+    <strong style="color:#aaa">Draw:</strong> click and drag on canvas<br>
+    <strong style="color:#aaa">Select:</strong> click a compartment<br>
+    <strong style="color:#aaa">Delete:</strong> select then press Delete
+  </div>
+
+  <hr>
+
+  <div id="selected-panel">
+    <h2>Selected Compartment</h2>
+    <div class="field-group">
+      <label>Name / ID</label>
+      <input type="text" id="sel-id" placeholder="e.g. box1">
+    </div>
+    <div class="row">
+      <div class="field-group">
+        <label>X (inches)</label>
+        <input type="number" id="sel-x" step="0.25">
+      </div>
+      <div class="field-group">
+        <label>Y (inches)</label>
+        <input type="number" id="sel-y" step="0.25">
+      </div>
+    </div>
+    <div class="row">
+      <div class="field-group">
+        <label>Width</label>
+        <input type="number" id="sel-w" step="0.25" min="1">
+      </div>
+      <div class="field-group">
+        <label>Height</label>
+        <input type="number" id="sel-h" step="0.25" min="1">
+      </div>
+    </div>
+    <button class="btn-primary" onclick="applySelected()">Update</button>
+    <button class="btn-danger" onclick="deleteSelected()">Delete</button>
+  </div>
+
+  <hr>
+
+  <div class="field-group">
+    <h2>Compartments</h2>
+    <div id="compartment-list"></div>
+  </div>
+
+  <hr>
+
+  <div class="field-group">
+    <button class="btn-export" onclick="exportJSON()">Export JSON</button>
+    <pre id="export-output"></pre>
+  </div>
+</div>
+
+<div id="canvas-wrap">
+  <canvas id="canvas"></canvas>
+</div>
+
+<script>
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  const SCALE = 10; // pixels per inch
+  const SNAP = 0.25; // snap to quarter inch
+
+  let compartments = [];
+  let selected = null;
+  let drawing = false;
+  let drawStart = null;
+  let drawRect = null;
+
+  let canvasW = 60;
+  let canvasH = 50;
+
+  function applyCanvasSize() {
+    canvasW = parseFloat(document.getElementById('canvas-w').value) || 60;
+    canvasH = parseFloat(document.getElementById('canvas-h').value) || 50;
+    resizeCanvas();
+    render();
+  }
+
+  function resizeCanvas() {
+    canvas.width  = canvasW * SCALE;
+    canvas.height = canvasH * SCALE;
+  }
+
+  function snap(v) {
+    return Math.round(v / SNAP) * SNAP;
+  }
+
+  function toInches(px) {
+    return snap(px / SCALE);
+  }
+
+  function toPx(inches) {
+    return inches * SCALE;
+  }
+
+  function render() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Background
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Grid
+    ctx.strokeStyle = '#1e1e1e';
+    ctx.lineWidth = 0.5;
+    for (let x = 0; x <= canvasW; x++) {
+      ctx.beginPath();
+      ctx.moveTo(toPx(x), 0);
+      ctx.lineTo(toPx(x), canvas.height);
+      ctx.stroke();
+    }
+    for (let y = 0; y <= canvasH; y++) {
+      ctx.beginPath();
+      ctx.moveTo(0, toPx(y));
+      ctx.lineTo(canvas.width, toPx(y));
+      ctx.stroke();
+    }
+
+    // Compartments
+    compartments.forEach(c => {
+      const isSel = c === selected;
+      ctx.fillStyle = isSel ? 'rgba(74,158,255,0.15)' : 'rgba(255,255,255,0.05)';
+      ctx.fillRect(toPx(c.x), toPx(c.y), toPx(c.w), toPx(c.h));
+
+      ctx.strokeStyle = isSel ? '#4a9eff' : '#555';
+      ctx.lineWidth = isSel ? 2 : 1;
+      ctx.strokeRect(toPx(c.x), toPx(c.y), toPx(c.w), toPx(c.h));
+
+      // Label
+      ctx.fillStyle = isSel ? '#4a9eff' : '#888';
+      ctx.font = `${SCALE * 1.2}px system-ui`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(
+        c.id || '?',
+        toPx(c.x + c.w / 2),
+        toPx(c.y + c.h / 2)
+      );
+    });
+
+    // Drawing preview
+    if (drawRect) {
+      ctx.strokeStyle = '#4a9eff';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 4]);
+      ctx.strokeRect(toPx(drawRect.x), toPx(drawRect.y), toPx(drawRect.w), toPx(drawRect.h));
+      ctx.setLineDash([]);
+    }
+  }
+
+  function getPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: toInches(e.clientX - rect.left),
+      y: toInches(e.clientY - rect.top)
+    };
+  }
+
+  canvas.addEventListener('mousedown', e => {
+    const pos = getPos(e);
+    // Check if clicking existing compartment
+    const hit = [...compartments].reverse().find(c =>
+      pos.x >= c.x && pos.x <= c.x + c.w &&
+      pos.y >= c.y && pos.y <= c.y + c.h
+    );
+    if (hit) {
+      selected = hit;
+      updateSidebar();
+      render();
+      return;
+    }
+    // Start drawing
+    drawing = true;
+    drawStart = pos;
+    selected = null;
+    updateSidebar();
+  });
+
+  canvas.addEventListener('mousemove', e => {
+    if (!drawing) return;
+    const pos = getPos(e);
+    const x = Math.min(drawStart.x, pos.x);
+    const y = Math.min(drawStart.y, pos.y);
+    const w = Math.abs(pos.x - drawStart.x);
+    const h = Math.abs(pos.y - drawStart.y);
+    drawRect = { x, y, w, h };
+    render();
+  });
+
+  canvas.addEventListener('mouseup', e => {
+    if (!drawing) return;
+    drawing = false;
+    if (drawRect && drawRect.w >= SNAP && drawRect.h >= SNAP) {
+      const c = {
+        id: `box${compartments.length + 1}`,
+        x: drawRect.x,
+        y: drawRect.y,
+        w: drawRect.w,
+        h: drawRect.h
+      };
+      compartments.push(c);
+      selected = c;
+      updateSidebar();
+    }
+    drawRect = null;
+    render();
+  });
+
+  document.addEventListener('keydown', e => {
+    if ((e.key === 'Delete' || e.key === 'Backspace') && selected) {
+      // Don't delete if focused on an input
+      if (document.activeElement.tagName === 'INPUT') return;
+      deleteSelected();
+    }
+  });
+
+  function updateSidebar() {
+    const panel = document.getElementById('selected-panel');
+    if (selected) {
+      panel.classList.add('active');
+      document.getElementById('sel-id').value = selected.id;
+      document.getElementById('sel-x').value = selected.x;
+      document.getElementById('sel-y').value = selected.y;
+      document.getElementById('sel-w').value = selected.w;
+      document.getElementById('sel-h').value = selected.h;
+    } else {
+      panel.classList.remove('active');
+    }
+    renderList();
+  }
+
+  function renderList() {
+    const list = document.getElementById('compartment-list');
+    list.innerHTML = '';
+    compartments.forEach(c => {
+      const div = document.createElement('div');
+      div.className = 'comp-item' + (c === selected ? ' selected' : '');
+      div.textContent = `${c.id || '?'}  (${c.w}"×${c.h}" @ ${c.x},${c.y})`;
+      div.onclick = () => { selected = c; updateSidebar(); render(); };
+      list.appendChild(div);
+    });
+  }
+
+  function applySelected() {
+    if (!selected) return;
+    selected.id = document.getElementById('sel-id').value.trim() || selected.id;
+    selected.x  = parseFloat(document.getElementById('sel-x').value) || 0;
+    selected.y  = parseFloat(document.getElementById('sel-y').value) || 0;
+    selected.w  = parseFloat(document.getElementById('sel-w').value) || 1;
+    selected.h  = parseFloat(document.getElementById('sel-h').value) || 1;
+    updateSidebar();
+    render();
+  }
+
+  function deleteSelected() {
+    if (!selected) return;
+    compartments = compartments.filter(c => c !== selected);
+    selected = null;
+    updateSidebar();
+    render();
+  }
+
+  function exportJSON() {
+    const data = {
+      name: 'my-shelf',
+      unit: 'inches',
+      compartments: compartments.map(c => ({
+        id: c.id,
+        x: c.x,
+        y: c.y,
+        w: c.w,
+        h: c.h
+      }))
+    };
+    const out = document.getElementById('export-output');
+    out.textContent = JSON.stringify(data, null, 2);
+    out.classList.add('active');
+  }
+
+  // Init
+  resizeCanvas();
+  render();
+</script>
+</body>
+</html>
