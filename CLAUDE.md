@@ -64,7 +64,7 @@ Significant decisions are tracked in `decisions/`. Each file records what was de
 
 - **Projection-agnostic renderer:** Never let rendering code assume a specific projection technology. Pepper's Ghost, holographic pyramid, plain monitor — all are valid targets.
 - **Design modularity:** A "shelf design" is a config/module, not hardcoded logic. New designs should require zero changes to the renderer core.
-- **Pure black backgrounds in display output** — required by Pepper's Ghost (black = invisible in reflection). Other projection setups may differ, but black-safe is the default.
+- **Renderer draws a realistic shelf** — warm wood tones, shelf geometry, covers in compartments. It mirrors the physical shelf visually. Black backgrounds and mirroring are projection adapter concerns, not renderer concerns.
 - **Cover images are the primary visual unit** — not spines. Source from Open Library first, Google Books as fallback, cache locally after first fetch.
 - **No internet required at runtime** — all metadata and covers are cached locally in SQLite after sync.
 - **Audible/Kindle auth is out-of-band** — never automate those login flows. `audible-cli` handles Audible auth; Playwright session handles Kindle. User logs in manually once.
