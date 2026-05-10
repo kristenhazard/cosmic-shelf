@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Cosmic Shelf</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #1a110a; overflow: hidden; display: flex; align-items: center; justify-content: center; height: 100vh; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+<canvas id="shelf"></canvas>
+<script>
+
+// ─── Shelf design (embedded for standalone POC; replace with fetch in Rails) ──
+const DESIGN = {
+  "name": "kristens-shelf-mirrored",
+  "unit": "inches",
+  "compartments": [
+    { "id": "box1",       "x": 26.75, "y": 0,     "w": 12,    "h": 10    },
+    { "id": "box2",       "x": 9.75,  "y": 1,     "w": 17,    "h": 7     },
+    { "id": "box3",       "x": 26.75, "y": 10,    "w": 17,    "h": 15    },
+    { "id": "box4",       "x": 9.75,  "y": 8,     "w": 17,    "h": 12    },
+    { "id": "box5-left",  "x": 26.75, "y": 25,    "w": 13.25, "h": 10    },
+    { "id": "box5-right", "x": 15,    "y": 20,    "w": 11.75, "h": 15    },
+    { "id": "box6-left",  "x": 15,    "y": 35,    "w": 29,    "h": 10    },
+    { "id": "box6-right", "x": 6.5,   "y": 32.25, "w": 8.5,   "h": 12.75 },
+    { "id": "box7",       "x": 30.5,  "y": 45,    "w": 12,    "h": 12    },
+    { "id": "box8",       "x": 18.5,  "y": 45,    "w": 12,    "h": 12    },
+    { "id": "box9",       "x": 6.5,   "y": 45,    "w": 12,    "h": 12    },
+    { "id": "box10",      "x": 18.5,  "y": 57,    "w": 24,    "h": 9.25  },
+    { "id": "box11",      "x": 0,     "y": 57,    "w": 18.5,  "h": 18.5  },
+    { "id": "box12",      "x": 18.5,  "y": 66.25, "w": 24,    "h": 9.25  },
+    { "id": "box13",      "x": 18.5,  "y": 75.5,  "w": 24,    "h": 14    },
+    { "id": "box14",      "x": 4,     "y": 75.5,  "w": 14.5,  "h": 14    }
+  ]
+};
+
+// ─── Placeholder books ────────────────────────────────────────────────────────
+const BOOKS = [
+  { title: "The Overstory",              author: "Richard Powers",         bg: "#1B4332", accent: "#52B788", light: true  },
+  { title: "Braiding Sweetgrass",        author: "Robin Wall Kimmerer",    bg: "#2D6A4F", accent: "#95D5B2", light: true  },
+  { title: "A Field Guide to Getting Lost", author: "Rebecca Solnit",      bg: "#1D3557", accent: "#A8DADC", light: true  },
+  { title: "Entangled Life",             author: "Merlin Sheldrake",       bg: "#3D405B", accent: "#81B29A", light: true  },
+  { title: "The Hidden Life of Trees",   author: "Peter Wohlleben",        bg: "#386641", accent: "#A7C957", light: true  },
+  { title: "Desert Solitaire",           author: "Edward Abbey",           bg: "#9C6644", accent: "#F4D35E", light: false },
+  { title: "Pilgrim at Tinker Creek",    author: "Annie Dillard",          bg: "#2B2D42", accent: "#EF233C", light: true  },
+  { title: "Invisible Cities",           author: "Italo Calvino",          bg: "#03045E", accent: "#CAF0F8", light: true  },
+  { title: "One Hundred Years of Solitude", author: "Gabriel García Márquez", bg: "#6A0572", accent: "#F72585", light: true },
+  { title: "The Left Hand of Darkness",  author: "Ursula K. Le Guin",     bg: "#0D1B2A", accent: "#778DA9", light: true  },
+  { title: "Beloved",                    author: "Toni Morrison",          bg: "#590D22", accent: "#FF4D6D", light: true  },
+  { title: "Parable of the Sower",       author: "Octavia Butler",         bg: "#4B3832", accent: "#DDA15E", light: true  },
+  { title: "The Ministry for the Future", author: "Kim Stanley Robinson",  bg: "#023E8A", accent: "#48CAE4", light: true  },
+  { title: "Song of Solomon",            author: "Toni Morrison",          bg: "#3A0CA3", accent: "#E040FB", light: true  },
+  { title: "The Dispossessed",           author: "Ursula K. Le Guin",     bg: "#1C1C1C", accent: "#E9C46A", light: true  },
+  { title: "Kindred",                    author: "Octavia Butler",         bg: "#7B2D8B", accent: "#F8EDEB", light: true  },
+];
+
+// ─── Rendering ────────────────────────────────────────────────────────────────
+const canvas = document.getElementById('shelf');
+const ctx    = canvas.getContext('2d');
+
+function getBounds() {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  DESIGN.compartments.forEach(c => {
+    minX = Math.min(minX, c.x);
+    minY = Math.min(minY, c.y);
+    maxX = Math.max(maxX, c.x + c.w);
+    maxY = Math.max(maxY, c.y + c.h);
+  });
+  return { minX, minY, maxX, maxY, w: maxX - minX, h: maxY - minY };
+}
+
+function render() {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  canvas.width  = vw;
+  canvas.height = vh;
+
+  const bounds = getBounds();
+  const margin  = 40;
+  const scale   = Math.min((vw - margin * 2) / bounds.w, (vh - margin * 2) / bounds.h);
+
+  const offsetX = Math.round((vw - bounds.w * scale) / 2);
+  const offsetY = Math.round((vh - bounds.h * scale) / 2);
+
+  function px(x) { return offsetX + (x - bounds.minX) * scale; }
+  function py(y) { return offsetY + (y - bounds.minY) * scale; }
+  function ps(v) { return v * scale; }
+
+  // ── Background wall ──────────────────────────────────────────────────────
+  ctx.fillStyle = '#1a110a';
+  ctx.fillRect(0, 0, vw, vh);
+
+  // ── Shelf bounding box (the wood structure) ───────────────────────────────
+  const sx = px(bounds.minX) - ps(0.5);
+  const sy = py(bounds.minY) - ps(0.5);
+  const sw = ps(bounds.w) + ps(1);
+  const sh = ps(bounds.h) + ps(1);
+
+  drawWood(sx, sy, sw, sh, 0);
+
+  // ── Each compartment: recessed interior ──────────────────────────────────
+  DESIGN.compartments.forEach(c => {
+    const cx = px(c.x);
+    const cy = py(c.y);
+    const cw = ps(c.w);
+    const ch = ps(c.h);
+    drawCompartmentInterior(cx, cy, cw, ch);
+  });
+
+  // ── Book covers ───────────────────────────────────────────────────────────
+  DESIGN.compartments.forEach((c, i) => {
+    const cx = px(c.x);
+    const cy = py(c.y);
+    const cw = ps(c.w);
+    const ch = ps(c.h);
+    drawBooks(cx, cy, cw, ch, i);
+  });
+
+  // ── Compartment depth edges (drawn on top) ────────────────────────────────
+  DESIGN.compartments.forEach(c => {
+    const cx = px(c.x);
+    const cy = py(c.y);
+    const cw = ps(c.w);
+    const ch = ps(c.h);
+    drawCompartmentEdges(cx, cy, cw, ch);
+  });
+}
+
+// ── Wood panel with grain ─────────────────────────────────────────────────────
+function drawWood(x, y, w, h, seed) {
+  // Base wood gradient (light maple/honey tone, darker at edges)
+  const grad = ctx.createLinearGradient(x, y, x + w, y + h * 0.6);
+  grad.addColorStop(0,    '#E2BC82');
+  grad.addColorStop(0.15, '#D4A86A');
+  grad.addColorStop(0.4,  '#C8935C');
+  grad.addColorStop(0.65, '#D4A870');
+  grad.addColorStop(0.85, '#C89058');
+  grad.addColorStop(1,    '#B87840');
+  ctx.fillStyle = grad;
+  ctx.fillRect(x, y, w, h);
+
+  // Subtle grain lines
+  const grainSpacing = Math.max(2, h / 60);
+  for (let i = 0; i < h; i += grainSpacing) {
+    const gy = y + i;
+    const s  = seed + i * 0.11;
+    const op = 0.02 + Math.abs(Math.sin(s * 0.7)) * 0.04;
+    ctx.strokeStyle = `rgba(60,30,0,${op})`;
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    ctx.moveTo(x, gy);
+    const cp1x = x + w * 0.33;
+    const cp2x = x + w * 0.67;
+    const waver = Math.sin(s) * 1.5;
+    ctx.bezierCurveTo(cp1x, gy + waver, cp2x, gy - waver * 0.5, x + w, gy + waver * 0.3);
+    ctx.stroke();
+  }
+
+  // Edge darkening
+  const edgeGrad = ctx.createLinearGradient(x, y, x, y + Math.min(h * 0.08, 12));
+  edgeGrad.addColorStop(0, 'rgba(0,0,0,0.25)');
+  edgeGrad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = edgeGrad;
+  ctx.fillRect(x, y, w, h);
+}
+
+// ── Compartment interior (recessed, like looking into the shelf) ───────────────
+function drawCompartmentInterior(x, y, w, h) {
+  // Back wall — deeper tone
+  const backGrad = ctx.createLinearGradient(x, y, x + w * 0.5, y + h);
+  backGrad.addColorStop(0, '#8C6030');
+  backGrad.addColorStop(1, '#7A5228');
+  ctx.fillStyle = backGrad;
+  ctx.fillRect(x, y, w, h);
+
+  // Subtle back wall grain (lighter, horizontal)
+  const grainSpacing = Math.max(3, h / 20);
+  for (let i = 0; i < h; i += grainSpacing) {
+    ctx.strokeStyle = 'rgba(200,150,80,0.06)';
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    ctx.moveTo(x, y + i);
+    ctx.lineTo(x + w, y + i);
+    ctx.stroke();
+  }
+}
+
+// ── Compartment depth shadow edges ────────────────────────────────────────────
+function drawCompartmentEdges(x, y, w, h) {
+  const depth = Math.min(ps_global, Math.max(4, Math.min(w, h) * 0.08));
+
+  // Top shadow (overhang above compartment)
+  const topGrad = ctx.createLinearGradient(x, y, x, y + depth * 2.5);
+  topGrad.addColorStop(0, 'rgba(0,0,0,0.55)');
+  topGrad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = topGrad;
+  ctx.fillRect(x, y, w, depth * 2.5);
+
+  // Left shadow
+  const leftGrad = ctx.createLinearGradient(x, y, x + depth * 2, y);
+  leftGrad.addColorStop(0, 'rgba(0,0,0,0.3)');
+  leftGrad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = leftGrad;
+  ctx.fillRect(x, y, depth * 2, h);
+
+  // Right highlight (light from front-left)
+  const rightGrad = ctx.createLinearGradient(x + w, y, x + w - depth, y);
+  rightGrad.addColorStop(0, 'rgba(255,200,100,0.08)');
+  rightGrad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = rightGrad;
+  ctx.fillRect(x + w - depth, y, depth, h);
+
+  // Bottom highlight (ambient bounce)
+  const botGrad = ctx.createLinearGradient(x, y + h, x, y + h - depth);
+  botGrad.addColorStop(0, 'rgba(255,180,80,0.12)');
+  botGrad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = botGrad;
+  ctx.fillRect(x, y + h - depth, w, depth);
+}
+
+let ps_global = 10;
+
+// ── Books inside a compartment ─────────────────────────────────────────────────
+function drawBooks(cx, cy, cw, ch, index) {
+  const padV = Math.max(6, ch * 0.12);   // vertical: more breathing room top/bottom
+  const padH = Math.max(4, cw * 0.07);   // horizontal: left/right margin
+
+  const availW = cw - padH * 2;
+  const availH = ch - padV * 2;
+
+  if (availW < 8 || availH < 8) return;
+
+  // How many books fit side by side?
+  const bookH   = availH;
+  const bookW   = bookH * (2 / 3);
+  const bookGap = Math.max(5, bookW * 0.14);  // more air between covers
+
+  const numBooks = Math.min(
+    BOOKS.length,
+    Math.max(1, Math.floor((availW + bookGap) / (bookW + bookGap)))
+  );
+
+  const totalW  = numBooks * bookW + (numBooks - 1) * bookGap;
+  const startX  = cx + padH + (availW - totalW) / 2;
+  const startY  = cy + padV;
+
+  for (let i = 0; i < numBooks; i++) {
+    const book = BOOKS[(index * 3 + i) % BOOKS.length];
+    const bx   = startX + i * (bookW + bookGap);
+    drawSingleCover(bx, startY, bookW, bookH, book);
+  }
+}
+
+// ── Single book cover ─────────────────────────────────────────────────────────
+function drawSingleCover(x, y, w, h, book) {
+  if (w < 6 || h < 8) return;
+
+  // Shadow behind book
+  ctx.shadowColor   = 'rgba(0,0,0,0.5)';
+  ctx.shadowBlur    = Math.max(3, w * 0.1);
+  ctx.shadowOffsetX = w * 0.04;
+  ctx.shadowOffsetY = h * 0.02;
+
+  // Cover background
+  ctx.fillStyle = book.bg;
+  roundRect(x, y, w, h, Math.max(1, w * 0.04));
+  ctx.fill();
+  ctx.shadowColor = 'transparent';
+  ctx.shadowBlur  = 0;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 0;
+
+  ctx.save();
+  ctx.beginPath();
+  roundRectPath(x, y, w, h, Math.max(1, w * 0.04));
+  ctx.clip();
+
+  // Design element (varies by book)
+  drawCoverDesign(x, y, w, h, book);
+
+  // Title text
+  const titleSize = Math.max(6, Math.min(w * 0.18, h * 0.1, 13));
+  ctx.fillStyle   = book.light ? 'rgba(255,255,255,0.95)' : 'rgba(20,10,5,0.9)';
+  ctx.font        = `bold ${titleSize}px Georgia, serif`;
+  ctx.textAlign   = 'center';
+  ctx.textBaseline = 'alphabetic';
+  wrapText(book.title, x + w / 2, y + h * 0.72, w - 4, titleSize * 1.25, 2);
+
+  // Author text
+  const authorSize = Math.max(5, titleSize * 0.72);
+  ctx.fillStyle    = book.light ? 'rgba(255,255,255,0.65)' : 'rgba(20,10,5,0.6)';
+  ctx.font         = `${authorSize}px Helvetica, Arial, sans-serif`;
+  ctx.fillText(book.author, x + w / 2, y + h * 0.9, w - 4);
+
+  ctx.restore();
+
+  // Spine highlight (left edge)
+  const spineGrad = ctx.createLinearGradient(x, y, x + w * 0.12, y);
+  spineGrad.addColorStop(0, 'rgba(255,255,255,0.2)');
+  spineGrad.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = spineGrad;
+  roundRect(x, y, w, h, Math.max(1, w * 0.04));
+  ctx.fill();
+}
+
+// ── Cover design element (geometric accent) ───────────────────────────────────
+function drawCoverDesign(x, y, w, h, book) {
+  const variant = BOOKS.indexOf(book) % 6;
+  ctx.fillStyle   = book.accent;
+  ctx.strokeStyle = book.accent;
+
+  if (variant === 0) {
+    // Diagonal band
+    ctx.globalAlpha = 0.35;
+    ctx.beginPath();
+    ctx.moveTo(x, y + h * 0.15);
+    ctx.lineTo(x + w, y + h * 0.35);
+    ctx.lineTo(x + w, y + h * 0.5);
+    ctx.lineTo(x, y + h * 0.3);
+    ctx.closePath();
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+  } else if (variant === 1) {
+    // Circle
+    ctx.globalAlpha = 0.3;
+    ctx.beginPath();
+    ctx.arc(x + w * 0.5, y + h * 0.35, Math.min(w, h * 0.4) * 0.6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+  } else if (variant === 2) {
+    // Horizontal bars
+    ctx.globalAlpha = 0.25;
+    [0.1, 0.2, 0.3].forEach(t => {
+      ctx.fillRect(x, y + h * t, w, h * 0.06);
+    });
+    ctx.globalAlpha = 1;
+
+  } else if (variant === 3) {
+    // Triangle
+    ctx.globalAlpha = 0.3;
+    ctx.beginPath();
+    ctx.moveTo(x + w * 0.5, y + h * 0.05);
+    ctx.lineTo(x + w * 0.9, y + h * 0.55);
+    ctx.lineTo(x + w * 0.1, y + h * 0.55);
+    ctx.closePath();
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+  } else if (variant === 4) {
+    // Corner block
+    ctx.globalAlpha = 0.4;
+    ctx.fillRect(x, y, w * 0.45, h * 0.45);
+    ctx.globalAlpha = 1;
+
+  } else {
+    // Concentric rings
+    ctx.globalAlpha = 0.2;
+    [0.55, 0.38, 0.22].forEach(r => {
+      ctx.beginPath();
+      ctx.arc(x + w * 0.5, y + h * 0.35, Math.min(w, h) * r, 0, Math.PI * 2);
+      ctx.lineWidth = Math.max(1, w * 0.05);
+      ctx.stroke();
+    });
+    ctx.globalAlpha = 1;
+  }
+}
+
+// ── Text wrapping ─────────────────────────────────────────────────────────────
+function wrapText(text, cx, y, maxW, lineH, maxLines) {
+  const words = text.split(' ');
+  const lines  = [];
+  let line     = '';
+
+  for (const word of words) {
+    const test = line ? line + ' ' + word : word;
+    if (ctx.measureText(test).width > maxW && line) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = test;
+    }
+  }
+  if (line) lines.push(line);
+
+  const shown = lines.slice(0, maxLines);
+  const totalH = shown.length * lineH;
+  shown.forEach((l, i) => {
+    ctx.fillText(l, cx, y - totalH / 2 + i * lineH + lineH, maxW);
+  });
+}
+
+// ── Rounded rect helpers ───────────────────────────────────────────────────────
+function roundRectPath(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function roundRect(x, y, w, h, r) {
+  roundRectPath(x, y, w, h, r);
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+function init() {
+  const bounds = getBounds();
+  const margin  = 40;
+  const scale   = Math.min(
+    (window.innerWidth  - margin * 2) / bounds.w,
+    (window.innerHeight - margin * 2) / bounds.h
+  );
+  ps_global = scale;
+  render();
+}
+
+window.addEventListener('load',   init);
+window.addEventListener('resize', init);
+
+</script>
+</body>
+</html>
