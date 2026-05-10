@@ -37,25 +37,35 @@ const DESIGN = {
   ]
 };
 
-// ─── Placeholder books ────────────────────────────────────────────────────────
+// ─── Books with cover images ──────────────────────────────────────────────────
 const BOOKS = [
-  { title: "The Overstory",              author: "Richard Powers",         bg: "#1B4332", accent: "#52B788", light: true  },
-  { title: "Braiding Sweetgrass",        author: "Robin Wall Kimmerer",    bg: "#2D6A4F", accent: "#95D5B2", light: true  },
-  { title: "A Field Guide to Getting Lost", author: "Rebecca Solnit",      bg: "#1D3557", accent: "#A8DADC", light: true  },
-  { title: "Entangled Life",             author: "Merlin Sheldrake",       bg: "#3D405B", accent: "#81B29A", light: true  },
-  { title: "The Hidden Life of Trees",   author: "Peter Wohlleben",        bg: "#386641", accent: "#A7C957", light: true  },
-  { title: "Desert Solitaire",           author: "Edward Abbey",           bg: "#9C6644", accent: "#F4D35E", light: false },
-  { title: "Pilgrim at Tinker Creek",    author: "Annie Dillard",          bg: "#2B2D42", accent: "#EF233C", light: true  },
-  { title: "Invisible Cities",           author: "Italo Calvino",          bg: "#03045E", accent: "#CAF0F8", light: true  },
-  { title: "One Hundred Years of Solitude", author: "Gabriel García Márquez", bg: "#6A0572", accent: "#F72585", light: true },
-  { title: "The Left Hand of Darkness",  author: "Ursula K. Le Guin",     bg: "#0D1B2A", accent: "#778DA9", light: true  },
-  { title: "Beloved",                    author: "Toni Morrison",          bg: "#590D22", accent: "#FF4D6D", light: true  },
-  { title: "Parable of the Sower",       author: "Octavia Butler",         bg: "#4B3832", accent: "#DDA15E", light: true  },
-  { title: "The Ministry for the Future", author: "Kim Stanley Robinson",  bg: "#023E8A", accent: "#48CAE4", light: true  },
-  { title: "Song of Solomon",            author: "Toni Morrison",          bg: "#3A0CA3", accent: "#E040FB", light: true  },
-  { title: "The Dispossessed",           author: "Ursula K. Le Guin",     bg: "#1C1C1C", accent: "#E9C46A", light: true  },
-  { title: "Kindred",                    author: "Octavia Butler",         bg: "#7B2D8B", accent: "#F8EDEB", light: true  },
+  { title: "The Overstory",                 author: "Richard Powers",          cover: "covers/the-overstory.jpg",                  bg: "#1B4332", accent: "#52B788", light: true  },
+  { title: "Braiding Sweetgrass",           author: "Robin Wall Kimmerer",     cover: "covers/braiding-sweetgrass.jpg",             bg: "#2D6A4F", accent: "#95D5B2", light: true  },
+  { title: "A Field Guide to Getting Lost", author: "Rebecca Solnit",          cover: "covers/a-field-guide-to-getting-lost.jpg",   bg: "#1D3557", accent: "#A8DADC", light: true  },
+  { title: "Entangled Life",                author: "Merlin Sheldrake",        cover: "covers/entangled-life.jpg",                  bg: "#3D405B", accent: "#81B29A", light: true  },
+  { title: "The Hidden Life of Trees",      author: "Peter Wohlleben",         cover: "covers/the-hidden-life-of-trees.jpg",        bg: "#386641", accent: "#A7C957", light: true  },
+  { title: "Desert Solitaire",              author: "Edward Abbey",            cover: "covers/desert-solitaire.jpg",                bg: "#9C6644", accent: "#F4D35E", light: false },
+  { title: "Pilgrim at Tinker Creek",       author: "Annie Dillard",           cover: "covers/pilgrim-at-tinker-creek.jpg",         bg: "#2B2D42", accent: "#EF233C", light: true  },
+  { title: "Invisible Cities",              author: "Italo Calvino",           cover: "covers/invisible-cities.jpg",                bg: "#03045E", accent: "#CAF0F8", light: true  },
+  { title: "One Hundred Years of Solitude", author: "Gabriel García Márquez",  cover: "covers/one-hundred-years-of-solitude.jpg",   bg: "#6A0572", accent: "#F72585", light: true  },
+  { title: "The Left Hand of Darkness",     author: "Ursula K. Le Guin",      cover: "covers/the-left-hand-of-darkness.jpg",       bg: "#0D1B2A", accent: "#778DA9", light: true  },
+  { title: "Beloved",                       author: "Toni Morrison",           cover: "covers/beloved.jpg",                         bg: "#590D22", accent: "#FF4D6D", light: true  },
+  { title: "Parable of the Sower",          author: "Octavia Butler",          cover: "covers/parable-of-the-sower.jpg",            bg: "#4B3832", accent: "#DDA15E", light: true  },
+  { title: "The Ministry for the Future",   author: "Kim Stanley Robinson",    cover: "covers/the-ministry-for-the-future.jpg",     bg: "#023E8A", accent: "#48CAE4", light: true  },
+  { title: "Song of Solomon",               author: "Toni Morrison",           cover: "covers/song-of-solomon.jpg",                 bg: "#3A0CA3", accent: "#E040FB", light: true  },
+  { title: "The Dispossessed",              author: "Ursula K. Le Guin",      cover: "covers/the-dispossessed.jpg",                bg: "#1C1C1C", accent: "#E9C46A", light: true  },
+  { title: "Kindred",                       author: "Octavia Butler",          cover: "covers/kindred.jpg",                         bg: "#7B2D8B", accent: "#F8EDEB", light: true  },
 ];
+
+// ─── Preload cover images ─────────────────────────────────────────────────────
+const coverImages = {};
+let imagesLoaded = 0;
+BOOKS.forEach(book => {
+  const img = new Image();
+  img.onload  = () => { coverImages[book.cover] = img; imagesLoaded++; if (imagesLoaded === BOOKS.length) render(); };
+  img.onerror = () => { imagesLoaded++; if (imagesLoaded === BOOKS.length) render(); };
+  img.src = book.cover;
+});
 
 // ─── Rendering ────────────────────────────────────────────────────────────────
 const canvas = document.getElementById('shelf');
@@ -258,15 +268,16 @@ function drawBooks(cx, cy, cw, ch, index) {
 function drawSingleCover(x, y, w, h, book) {
   if (w < 6 || h < 8) return;
 
+  const r = Math.max(1, w * 0.04);
+
   // Shadow behind book
   ctx.shadowColor   = 'rgba(0,0,0,0.5)';
   ctx.shadowBlur    = Math.max(3, w * 0.1);
   ctx.shadowOffsetX = w * 0.04;
   ctx.shadowOffsetY = h * 0.02;
 
-  // Cover background
   ctx.fillStyle = book.bg;
-  roundRect(x, y, w, h, Math.max(1, w * 0.04));
+  roundRect(x, y, w, h, r);
   ctx.fill();
   ctx.shadowColor = 'transparent';
   ctx.shadowBlur  = 0;
@@ -275,34 +286,36 @@ function drawSingleCover(x, y, w, h, book) {
 
   ctx.save();
   ctx.beginPath();
-  roundRectPath(x, y, w, h, Math.max(1, w * 0.04));
+  roundRectPath(x, y, w, h, r);
   ctx.clip();
 
-  // Design element (varies by book)
-  drawCoverDesign(x, y, w, h, book);
+  const img = book.cover && coverImages[book.cover];
+  if (img) {
+    ctx.drawImage(img, x, y, w, h);
+  } else {
+    drawCoverDesign(x, y, w, h, book);
 
-  // Title text
-  const titleSize = Math.max(6, Math.min(w * 0.18, h * 0.1, 13));
-  ctx.fillStyle   = book.light ? 'rgba(255,255,255,0.95)' : 'rgba(20,10,5,0.9)';
-  ctx.font        = `bold ${titleSize}px Georgia, serif`;
-  ctx.textAlign   = 'center';
-  ctx.textBaseline = 'alphabetic';
-  wrapText(book.title, x + w / 2, y + h * 0.72, w - 4, titleSize * 1.25, 2);
+    const titleSize = Math.max(6, Math.min(w * 0.18, h * 0.1, 13));
+    ctx.fillStyle   = book.light ? 'rgba(255,255,255,0.95)' : 'rgba(20,10,5,0.9)';
+    ctx.font        = `bold ${titleSize}px Georgia, serif`;
+    ctx.textAlign   = 'center';
+    ctx.textBaseline = 'alphabetic';
+    wrapText(book.title, x + w / 2, y + h * 0.72, w - 4, titleSize * 1.25, 2);
 
-  // Author text
-  const authorSize = Math.max(5, titleSize * 0.72);
-  ctx.fillStyle    = book.light ? 'rgba(255,255,255,0.65)' : 'rgba(20,10,5,0.6)';
-  ctx.font         = `${authorSize}px Helvetica, Arial, sans-serif`;
-  ctx.fillText(book.author, x + w / 2, y + h * 0.9, w - 4);
+    const authorSize = Math.max(5, titleSize * 0.72);
+    ctx.fillStyle    = book.light ? 'rgba(255,255,255,0.65)' : 'rgba(20,10,5,0.6)';
+    ctx.font         = `${authorSize}px Helvetica, Arial, sans-serif`;
+    ctx.fillText(book.author, x + w / 2, y + h * 0.9, w - 4);
+  }
 
   ctx.restore();
 
-  // Spine highlight (left edge)
+  // Spine highlight (left edge gloss)
   const spineGrad = ctx.createLinearGradient(x, y, x + w * 0.12, y);
-  spineGrad.addColorStop(0, 'rgba(255,255,255,0.2)');
+  spineGrad.addColorStop(0, 'rgba(255,255,255,0.18)');
   spineGrad.addColorStop(1, 'rgba(255,255,255,0)');
   ctx.fillStyle = spineGrad;
-  roundRect(x, y, w, h, Math.max(1, w * 0.04));
+  roundRect(x, y, w, h, r);
   ctx.fill();
 }
 
@@ -425,7 +438,7 @@ function init() {
   render();
 }
 
-window.addEventListener('load',   init);
+// Image preloader triggers first render; resize re-renders immediately
 window.addEventListener('resize', init);
 
 </script>
